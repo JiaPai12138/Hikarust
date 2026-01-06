@@ -70,12 +70,12 @@ jobs:
           TAG=${{ steps.version.outputs.llvm_tag }}
           REPO=${{ github.repository }}
 
-          download_url="https://github.com/$REPO/releases/download/$TAG/rust-llvm-$TAG.7z"
+          download_url="https://github.com/$REPO/releases/download/$TAG/rust-$TAG.7z"
           curl -L -o "rust-llvm.7z" "$download_url"
 
           if [ -f "rust-llvm.7z" ]; then
             echo "Download successful"
-            7z x rust-llvm-$TAG.7z -o"C:\Program Files" -aoa
+            7z x rust-llvm.7z -o"C:\Program Files" -aoa
           else
             echo "Download failed"
             exit 1
