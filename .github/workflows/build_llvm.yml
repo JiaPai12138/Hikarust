@@ -1,0 +1,121 @@
+name: windows-llvm-build
+
+permissions:
+  contents: write
+
+on:
+  release:
+    types: [published, edited]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    env:
+      BUILD_TYPE: Release
+
+    if: github.event_name == 'release'
+
+    steps:
+      - name: Set CORES
+        run: echo "CORES=$env:NUMBER_OF_PROCESSORS" >> $env:GITHUB_ENV
+
+      - name: Check if can proceed
+        shell: bash
+        id: pre-check
+        run: |
+          if ! echo "${{ github.event.release.tag_name }}" | grep -q "llvm"; then
+            exit 1
+          fi
+
+      - name: Extract version from release tag
+        id: version
+        run: |
+          $tag = "${{ github.event.release.tag_name }}"
+          $version = [regex]::Match($tag, '\d+\.\d+').Value
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Fetch branches from rust-lang/llvm-project
+        shell: bash
+        id: branches
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          echo "Searching for branches matching: $VERSION"
+
+          curl -s "https://api.github.com/repos/rust-lang/llvm-project/branches?per_page=100" > all_branches.json
+
+          jq -r --arg version "$VERSION" '
+            .[] | .name
+            | select(test("^rustc/" + $version + "-[0-9]{4}-[0-9]{2}-[0-9]{2}$"))
+          ' all_branches.json \
+          | sort -r > matching_branches.txt
+
+          echo "Matching branches:"
+          cat matching_branches.txt
+
+          SELECTED_BRANCH="$(head -n 1 matching_branches.txt)"
+          echo "selected=$SELECTED_BRANCH" >> $GITHUB_OUTPUT
+
+      - name: Checkout rust-lang/llvm-project
+        uses: actions/checkout@v5
+        with:
+          repository: rust-lang/llvm-project
+          ref: ${{ steps.branches.outputs.selected }}
+          path: llvm-project
+          submodules: recursive
+
+      - name: Install sccache
+        run: choco install sccache -y
+
+      - name: Check Ninja version
+        run: ninja --version
+
+      - name: Check clang-cl version
+        run: clang-cl --version
+
+      - name: Setup MSBuild.exe
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build llvm
+        shell: cmd
+        run: |
+          call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          cmake -B build -G Ninja ^
+          -DLLVM_ENABLE_RPMALLOC=OFF ^
+          -DCMAKE_CXX_STANDARD=17 ^
+          -DLLVM_INCLUDE_TESTS=OFF ^
+          -DLLVM_EXPORT_SYMBOLS_FOR_PLUGINS=ON ^
+          -DLLVM_ENABLE_BACKTRACES=OFF ^
+          -DLLVM_INCLUDE_BENCHMARKS=OFF ^
+          -DLLVM_INCLUDE_TOOLS=OFF ^
+          -DLLVM_INCLUDE_UTILS=OFF ^
+          -DLLVM_INCLUDE_EXAMPLES=OFF ^
+          -DLLVM_INSTALL_UTILS=OFF ^
+          -DLLVM_ENABLE_LIBXML2=OFF ^
+          -DLLVM_ENABLE_ZLIB=OFF ^
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} ^
+          -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded ^
+          -DCMAKE_INSTALL_PREFIX="C:/Program Files/LLVM" ^
+          -DLLVM_TARGETS_TO_BUILD="X86" ^
+          -DCMAKE_C_COMPILER=clang-cl ^
+          -DCMAKE_CXX_COMPILER=clang-cl ^
+          -DCMAKE_C_COMPILER_LAUNCHER=sccache ^
+          -DCMAKE_CXX_COMPILER_LAUNCHER=sccache ^
+          llvm-project\\llvm
+          cmake --build build --config ${{ env.BUILD_TYPE }} --target install --verbose -j ${{ env.CORES }}
+
+      - name: Compress build to 7z
+        run: |
+          7z a -t7z -m0=LZMA2 -mmt=on -mx3 -md=4m -mfb=32 -ms=1g -mqs=on -sccUTF-8 -bb0 -bse0 -snl -mtc=on -mta=on rust-llvm.7z "C:/Program Files/LLVM/"
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.release.tag_name }}
+          name: ${{ github.event.release.name }}
+          draft: false
+          prerelease: false
+          files: |
+            rust-llvm.7z
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
