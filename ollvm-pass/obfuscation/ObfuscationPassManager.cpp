@@ -1,5 +1,6 @@
 #include "include/ObfuscationPassManager.h"
 #include "llvm/IR/LegacyPassManager.h"
+#include "llvm/Passes/PassPlugin.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Path.h"

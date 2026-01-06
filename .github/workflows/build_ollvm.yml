@@ -75,7 +75,7 @@ jobs:
 
           if [ -f "rust-llvm.7z" ]; then
             echo "Download successful"
-            7z x rust-llvm.7z -o"C:\Program Files" -aoa
+            7z x rust-llvm-$TAG.7z -o"C:\Program Files" -aoa
           else
             echo "Download failed"
             exit 1
