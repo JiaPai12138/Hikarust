@@ -57,7 +57,7 @@ jobs:
           echo "selected=$SELECTED_BRANCH" >> $GITHUB_OUTPUT
 
       - name: Checkout rust-lang/llvm-project
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: rust-lang/llvm-project
           ref: ${{ steps.branches.outputs.selected }}
