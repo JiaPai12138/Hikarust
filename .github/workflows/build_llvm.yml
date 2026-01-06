@@ -43,6 +43,7 @@ jobs:
           echo "Searching for branches matching: $VERSION"
 
           curl -s "https://api.github.com/repos/rust-lang/llvm-project/branches?per_page=100" > all_branches.json
+          jq . all_branches.json
 
           jq -r --arg version "$VERSION" '
             .[] | .name
@@ -106,7 +107,7 @@ jobs:
 
       - name: Compress build to 7z
         run: |
-          7z a -t7z -m0=LZMA2 -mmt=on -mx3 -md=4m -mfb=32 -ms=1g -mqs=on -sccUTF-8 -bb0 -bse0 -snl -mtc=on -mta=on rust-llvm.7z "C:/Program Files/LLVM/"
+          7z a -t7z -m0=LZMA2 -mmt=on -mx3 -md=4m -mfb=32 -ms=1g -mqs=on -sccUTF-8 -bb0 -bse0 -snl -mtc=on -mta=on rust-llvm-"${{ steps.version.outputs.version }}".7z "C:/Program Files/LLVM/"
 
       - name: Release
         uses: softprops/action-gh-release@v2
@@ -116,6 +117,44 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            rust-llvm.7z
+            rust-llvm-*.7z
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cleanup
+        shell: bash
+        run: |
+          rm -rf ./* || true
+          rm -rf ./.??* || true
+        working-directory: ${{ github.workspace }}
+
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Build llvm-rust
+        shell: cmd
+        run: |
+          call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          cmake -B build_llvm -G Ninja ^
+          -S .\ollvm-pass ^
+          -DCMAKE_CXX_STANDARD=17 ^
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} ^
+          -DBUILD_SHARED_LIBS=ON ^
+          -DLLVM_DIR="C:/Program Files/LLVM/lib/cmake/llvm"
+          cmake --build build_llvm --config ${{ env.BUILD_TYPE }} --verbose -j ${{ env.CORES }}
+
+      - name: list dll
+        run: |
+          Get-ChildItem -Path . -Filter ollvm.dll -Recurse
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.release.tag_name }}
+          name: ${{ github.event.release.name }}
+          draft: false
+          prerelease: false
+          files: |
+            ollvm.dll
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
