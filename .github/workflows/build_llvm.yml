@@ -110,7 +110,7 @@ jobs:
           7z a -t7z -m0=LZMA2 -mmt=on -mx3 -md=4m -mfb=32 -ms=1g -mqs=on -sccUTF-8 -bb0 -bse0 -snl -mtc=on -mta=on rust-llvm-"${{ steps.version.outputs.version }}".7z "C:/Program Files/LLVM/"
 
       - name: Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.event.release.tag_name }}
           name: ${{ github.event.release.name }}
@@ -148,7 +148,7 @@ jobs:
           Get-ChildItem -Path . -Filter ollvm.dll -Recurse
 
       - name: Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.event.release.tag_name }}
           name: ${{ github.event.release.name }}
