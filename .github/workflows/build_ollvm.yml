@@ -81,6 +81,22 @@ jobs:
             exit 1
           fi
 
+      - name: Install Visual Studio DIA SDK
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+
+          $vs = & $vswhere -latest -products * -property installationPath
+
+          Write-Host "VS path: $vs"
+
+          & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\setup.exe" modify `
+            --installPath "$vs" `
+            --add Microsoft.VisualStudio.Component.VC.DiagnosticTools `
+            --quiet `
+            --wait `
+            --norestart
+
       - uses: TheMrMilchmann/setup-msvc-dev@v4
         with:
           arch: x64
