@@ -94,7 +94,6 @@ jobs:
             --installPath "$vs" `
             --add Microsoft.VisualStudio.Component.VC.DiagnosticTools `
             --quiet `
-            --wait `
             --norestart
 
       - uses: TheMrMilchmann/setup-msvc-dev@v4
