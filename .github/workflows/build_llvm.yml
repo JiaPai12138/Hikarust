@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-2022
 
     env:
       BUILD_TYPE: Release
@@ -81,11 +81,6 @@ jobs:
         shell: cmd
         run: |
           call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-          where clang-cl
-          where ml64
-          where link
-          where lib
-          echo PATH=%PATH%
 
           cmake -B build -G Ninja ^
           -DLLVM_ENABLE_RPMALLOC=OFF ^
@@ -106,8 +101,8 @@ jobs:
           -DLLVM_TARGETS_TO_BUILD="X86" ^
           -DCMAKE_C_COMPILER=clang-cl ^
           -DCMAKE_CXX_COMPILER=clang-cl ^
-          # -DCMAKE_C_COMPILER_LAUNCHER=sccache ^
-          # -DCMAKE_CXX_COMPILER_LAUNCHER=sccache ^
+          -DCMAKE_C_COMPILER_LAUNCHER=sccache ^
+          -DCMAKE_CXX_COMPILER_LAUNCHER=sccache ^
           llvm-project\\llvm
           cmake --build build --config ${{ env.BUILD_TYPE }} --target install --verbose -j ${{ env.CORES }}
 
