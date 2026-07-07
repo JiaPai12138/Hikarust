@@ -103,12 +103,12 @@ jobs:
       - name: Find diaguids.lib
         shell: pwsh
         run: |
-          Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\Lib" -Recurse -Filter diaguids.lib
+          Get-ChildItem "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\DIA SDK\lib" -Recurse -Filter diaguids.lib
 
       - name: Add Windows Kits lib to LIB
         shell: pwsh
         run: |
-          $kit = Get-ChildItem 'C:\Program Files (x86)\Windows Kits\10\Lib' -Directory |
+          $kit = Get-ChildItem "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\DIA SDK\lib" -Directory |
                 Where-Object { Test-Path (Join-Path $_.FullName 'um\x64\diaguids.lib') } |
                 Sort-Object Name -Descending | Select-Object -First 1
           if (-not $kit) { Write-Error 'Windows Kits diaguids.lib not found'; exit 1 }
