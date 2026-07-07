@@ -77,11 +77,13 @@ jobs:
       - name: Setup MSBuild.exe
         uses: microsoft/setup-msbuild@v3
 
+      - uses: TheMrMilchmann/setup-msvc-dev@v4
+        with:
+          arch: x64
+
       - name: Build llvm
         shell: cmd
         run: |
-          call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-
           cmake -B build -G Ninja ^
           -DLLVM_ENABLE_RPMALLOC=OFF ^
           -DCMAKE_CXX_STANDARD=17 ^
@@ -132,10 +134,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - uses: TheMrMilchmann/setup-msvc-dev@v4
+        with:
+          arch: x64
+
       - name: Build llvm-rust
         shell: cmd
         run: |
-          call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           cmake -B build_llvm -G Ninja ^
           -S .\ollvm-pass ^
           -DCMAKE_CXX_STANDARD=17 ^
