@@ -1,7 +1,6 @@
 add_library(ollvm SHARED
     ConstantFPEncryption.cpp
     ConstantIntEncryption.cpp
-    CryptoUtils.cpp
     Utils.cpp
     ObfuscationPassManager.cpp
     ObfuscationOptions.cpp

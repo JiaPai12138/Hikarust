@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-2022
 
     env:
       BUILD_TYPE: Release
@@ -28,7 +28,7 @@ jobs:
           fi
 
       - name: Checkout ollvm repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           submodules: recursive
 
@@ -81,10 +81,47 @@ jobs:
             exit 1
           fi
 
+      - name: Install Visual Studio DIA SDK
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+
+          $vs = & $vswhere -latest -products * -property installationPath
+
+          Write-Host "VS path: $vs"
+
+          & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\setup.exe" modify `
+            --installPath "$vs" `
+            --add Microsoft.VisualStudio.Component.VC.DiagnosticTools `
+            --quiet `
+            --norestart
+
+      - uses: TheMrMilchmann/setup-msvc-dev@v4
+        with:
+          arch: x64
+
+      - name: Find diaguids.lib
+        shell: pwsh
+        run: |
+          Get-ChildItem "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\DIA SDK\lib" -Recurse -Filter diaguids.lib
+
+      - name: Add DIA SDK lib to LIB
+        shell: pwsh
+        run: |
+          $dia = "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\DIA SDK\lib\amd64"
+
+          if (-not (Test-Path "$dia\diaguids.lib")) {
+            Write-Error "DIA SDK library not found"
+            exit 1
+          }
+
+          "LIB=$env:LIB;$dia" >> $env:GITHUB_ENV
+
+          Write-Host "Added DIA SDK lib: $dia"
+
       - name: Build llvm-rust
         shell: cmd
         run: |
-          call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           cmake -B build_llvm -G Ninja ^
           -S .\ollvm-pass ^
           -DCMAKE_CXX_STANDARD=17 ^
